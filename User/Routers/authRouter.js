@@ -13,8 +13,6 @@ router.get('/users/technicians', authController.getTechnicianUsers);
 router.get('/users/chief', authController.getChiefUsers);
 router.get('/search', authController.findUser); 
 router.get('/search-Tech', authController.searchTechs);
-router.post('/Tech-Team', authController.formTeam);
-router.get('/Teams', authController.displayTeams);
 router.put('/users/:id', authController.updateUser);
 router.delete('/users/:id', authController.deleteUser); 
 

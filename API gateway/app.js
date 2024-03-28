@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
-const YAML = require('yamljs');
 const PORT = process.env.PORT || 5000;
 app.use(cors());
 
@@ -20,10 +19,21 @@ const FeedbackServiceProxy = createProxyMiddleware({
     changeOrigin: true,
   });
 
+  const TeamDispatchServiceProxy = createProxyMiddleware({
+    target: "http://localhost:3003",
+    changeOrigin: true,
+  });
+
+  const MessageServiceProxy = createProxyMiddleware({
+    target: "http://localhost:3004",
+    changeOrigin: true,
+  });
+
 app.use("/auth", usermangementServiceProxy);
 app.use("", incidentReportingServiceProxy);
 app.use("", FeedbackServiceProxy);
-
+app.use("/auth", TeamDispatchServiceProxy);
+app.use("/messages", MessageServiceProxy);
 
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);

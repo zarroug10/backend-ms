@@ -1,9 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../Models/User');
-const Team = require('../Models/Team');
-const { Sequelize, Op } = require('sequelize');
-
+const { Sequelize, Op ,  QueryTypes} = require('sequelize');
 
 //listing the users api
 
@@ -146,7 +144,7 @@ exports.login = async (req, res) => {
     }
 
     // Generate JWT token with user's role included
-    const token = jwt.sign({ userId: user.id, userType: user.userType }, 'your_secret_key_here');
+    const token = jwt.sign({ userId: user.id, userType: user.userType, location: user.location }, 'your_secret_key_here');
 
     res.status(200).json({ token });
   } catch (error) {
@@ -186,87 +184,7 @@ exports.findUser = async (req, res) => {
   }
 };
 
-//form a team
-exports.formTeam = async (req, res) => {
-  try {
-    const token = req.headers.authorization;
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
 
-    jwt.verify(token, 'your_secret_key_here', async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: 'Invalid token' });
-      }
-
-      const { teamName } = req.body;
-      let { technicianIds } = req.body;
-
-      if (!teamName || !technicianIds || !Array.isArray(technicianIds)) {
-        return res.status(400).json({ error: 'Invalid request body' });
-      }
-
-      // Retrieve only users with the role "technician"
-      const technicians = await User.findAll({
-        where: { id: technicianIds, userType: 'technician' }
-      });
-
-      if (technicians.length !== technicianIds.length) {
-        // Some of the provided IDs are not technicians
-        return res.status(400).json({ error: 'Invalid technician IDs provided' });
-      }
-
-      // Create a new team with the provided name
-      const team = await Team.create({ name: teamName });
-
-      // Update the teamId of each technician with the ID of the newly created team
-      await Promise.all(technicians.map(async (technician) => {
-        await technician.update({ teamId: team.id });
-      }));
-
-      res.status(200).json({ message: 'Team formed successfully' });
-    });
-  } catch (error) {
-    console.error('Error forming team:', error);
-    res.status(500).json({ error: 'An error occurred while forming team' });
-  }
-}; 
-
-//Display teams
-exports.displayTeams = async (req, res) => {
-  try {
-    const token = req.headers.authorization;
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    jwt.verify(token, 'your_secret_key_here', async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: 'Invalid token' });
-      }
-
-      // Fetch all teams
-      const teams = await Team.findAll();
-
-      // Map over teams and retrieve members for each team
-      const teamsWithMembers = await Promise.all(teams.map(async (team) => {
-        const teamMembers = await User.findAll({
-          where: { teamId: team.id }
-        });
-        return {
-          id: team.id,
-          name: team.name,
-          members: teamMembers.map(member => ({ id: member.id, name: member.name }))
-        };
-      }));
-
-      res.status(200).json({ teams: teamsWithMembers });
-    });
-  } catch (error) {
-    console.error('Error displaying teams:', error);
-    res.status(500).json({ error: 'An error occurred while displaying teams' });
-  }
-};
 
 // Update User
 exports.updateUser = async (req, res) => {

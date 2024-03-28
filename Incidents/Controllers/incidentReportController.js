@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
+  storage: storage, 
   limits: { fileSize: 1024 * 1024 * 5 },
 }).single('media');
 
@@ -37,7 +37,7 @@ exports.getIncidents = async (req, res) => {
         }
         res.status(200).json(results);
       });
-    });
+    }); 
   } catch (err) {
     console.error('Error retrieving incidents:', err);
     res.status(500).json({ error: 'An error occurred while retrieving incidents' });
@@ -57,27 +57,32 @@ exports.submitIncident = async (req, res) => {
       }
 
       upload(req, res, async (err) => {
-        if (err instanceof multer.MulterError) {
+        if (err) {
           console.error('Multer error:', err);
-          return res.status(400).json({ error: 'File upload error', details: err.message });
-        } else if (err) {
-          console.error('Upload error:', err);
-          return res.status(500).json({ error: 'Internal server error' });
+          return res.status(400).json({ error: 'Error uploading file' });
         }
 
-        const { title, description, location, latitude, longitude } = req.body;
+        const { title, description, location } = req.body;
         let media = req.file ? req.file.path.replace('uploads\\', '') : null;
 
-        if (!title || !description || !location || !latitude || !longitude) {
-          return res.status(400).json({ error: 'Title, description, location, latitude, and longitude are required' });
+        if (!title || !description || !location) {
+          return res.status(400).json({ error: 'Title, description, and location are required' });
         }
 
         try {
-          // Assuming userId is stored in the JWT token
-          const userId = decoded.userId;
+          if (media && (media.endsWith('.jfif') || media.endsWith('.webp'))) {
+            const convertedImagePath = media.endsWith('.jfif') ? media.replace('.jfif', '.jpg') : media.replace('.webp', '.jpg');
+            await sharp(req.file.path)
+              .toFormat('jpeg')
+              .toFile(`./uploads/${convertedImagePath}`);
+            media = convertedImagePath;
+          }
+        
 
-          const query = 'INSERT INTO incidents (title, description, location, latitude, longitude, media, userId) VALUES (?, ?, ?, ?, ?, ?, ?)';
-          pool.query(query, [title, description, location, latitude, longitude, media, userId], (error, results, fields) => {
+          const userId = decoded.userId; // Assuming userId is stored in the JWT token
+
+          const query = 'INSERT INTO incidents (title, description, location, media, userId) VALUES (?, ?, ?, ?, ?)';
+          pool.query(query, [title, description, location, media, userId], (error, results, fields) => {
             if (error) {
               console.error('Error saving incident:', error);
               return res.status(500).json({ error: 'An error occurred while saving the incident' });
@@ -95,7 +100,6 @@ exports.submitIncident = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while verifying token' });
   }
 };
-
   
 
 exports.getrepaireReports = async (req, res) => {
@@ -162,7 +166,7 @@ exports.submitRepairReport = async (req, res) => {
     console.error('Error verifying token:', err);
     res.status(500).json({ error: 'An error occurred while verifying token' });
   }
-};
+};  
 
 
 // Endpoint for area-based analytics
@@ -318,5 +322,38 @@ exports.getLocationReportsAnalytics = async (req, res) => {
   } catch (err) {
     console.error('Error retrieving location reports analytics:', err);
     res.status(500).json({ error: 'An error occurred while retrieving location reports analytics' });
+  }
+};
+
+
+// Endpoint to get an incident by ID
+exports.getIncidentById = async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    jwt.verify(token, 'your_secret_key_here', async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const incidentId = req.params.id;
+      const query = 'SELECT * FROM incidents WHERE id = ?';
+      pool.query(query, [incidentId], (error, results, fields) => {
+        if (error) {
+          console.error('Error retrieving incident by ID:', error);
+          return res.status(500).json({ error: 'An error occurred while retrieving incident by ID' });
+        }
+        if (results.length === 0) {
+          return res.status(404).json({ error: 'Incident not found' });
+        }
+        res.status(200).json(results[0]);
+      });
+    });
+  } catch (err) {
+    console.error('Error retrieving incident by ID:', err);
+    res.status(500).json({ error: 'An error occurred while retrieving incident by ID' });
   }
 };
