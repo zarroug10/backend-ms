@@ -9,20 +9,22 @@ services:
       MYSQL_HOST: mysql
       MYSQL_USER: root
       MYSQL_PASSWORD: 
-      MYSQL_DATABASE: water ompany
+      MYSQL_DATABASE: water company
 
   mysql:
     image: mysql:latest
     ports:
-      - "3306:3306"
+      - "8080:80"
     environment:
-      MYSQL_ROOT_PASSWORD: 
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
       MYSQL_DATABASE: water company
+    volumes:
+      - C:\Users\zarro\Downloads\water_company (1).sql:/docker-entrypoint-initdb.d/water_company.sql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     ports:
-      - "8080:80"
+      - "3306:3306"
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: 
+      MYSQL_ROOT_PASSWORD:
