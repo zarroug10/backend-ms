@@ -19,7 +19,7 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
       MYSQL_DATABASE: water company
     volumes:
-      - C:\Users\zarro\Downloads\water_company (1).sql:/docker-entrypoint-initdb.d/water_company.sql
+      - \db\water company.sql:/docker-entrypoint-initdb.d/water company.sql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
